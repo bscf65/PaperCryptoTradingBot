@@ -354,3 +354,4 @@ Disable color if needed:
 ./run_btc_bot.sh btc_eth_sol_coinbase_paper_bot_v10.py --no-color --once
 ```
 # PaperCryptoTradingBot
+# PaperCryptoTradingBot
