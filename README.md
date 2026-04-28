@@ -1,89 +1,31 @@
-# BTC/ETH/SOL Coinbase Public-Data Paper Bot v10
+# BTC/ETH/SOL Coinbase Public-Data Paper Bot v14
 
-This package is a **paper-trading simulation lab** for BTC, ETH, and SOL.
+This is a paper-trading simulator. It uses Coinbase public market data only. It does not use API keys and does not place real orders.
 
-It uses **Coinbase public market data only**:
-- no API keys
-- no Coinbase account access
-- no real orders
-- no withdrawals
-- no live trading
+## v14 additions: local computer-time logs + JSON config files
 
-It simulates trades, tracks performance, estimates fees/taxes for planning, compares the bot to buy-and-hold benchmarks, and writes CSV files you can inspect.
+v14 writes both local computer time and UTC time into the CSV files. The terminal display also shows local time first. Daily P/L rolls over using your computer's local date instead of UTC.
 
-## Files
-
-```text
-btc_eth_sol_coinbase_paper_bot_v10.py  Main paper-trading bot
-analyze_bot_performance_v10.py         Performance analyzer
-run_btc_bot.sh                        Activates .venv and runs scripts
-setup_btc_bot.sh                      Installs/copies files into ~/btc-bot
-README.md                             This file
-```
-
-## What changed from v9
-
-- v10 adds clearer open-position accounting so you can see whether a loss is from market movement or trading friction.
-- The display now separates entry fee, market move P/L before entry fee, open P/L after entry fee, estimated exit fee, net liquidation P/L, and break-even bid.
-- The equity log now includes open-position fee and liquidation-estimate columns.
-- The analyzer now prints the latest open-position cost breakdown when those columns exist.
-- SOL-USD remains included as a default tracked/traded product alongside BTC-USD and ETH-USD.
-- v10 uses new log files so it does not overwrite v9 simulations.
-
-## Install on Kali
-
-From the unzipped package folder:
+Check or change your Kali/Linux system timezone with:
 
 ```bash
-bash setup_btc_bot.sh
-cd ~/btc-bot
+timedatectl
+sudo timedatectl set-timezone America/New_York
 ```
 
-Check help:
+The bot still keeps UTC columns too, because Coinbase/exchange data is commonly timestamped in UTC.
+
+v14 also lets you put the long command-line settings into a separate JSON file.
+
+Instead of typing this every time:
 
 ```bash
-./run_btc_bot.sh --help
-./run_btc_bot.sh btc_eth_sol_coinbase_paper_bot_v10.py --help
-./run_btc_bot.sh analyze_bot_performance_v10.py --help
-```
-
-## Quick one-cycle test
-
-```bash
-./run_btc_bot.sh btc_eth_sol_coinbase_paper_bot_v10.py \
-  --once \
-  --paper-cash 10000 \
-  --trade-size 500 \
-  --loss-stop-value 1000
-```
-
-## Start a fresh simulation
-
-```bash
-./run_btc_bot.sh btc_eth_sol_coinbase_paper_bot_v10.py \
-  --reset \
-  --paper-cash 10000 \
-  --trade-size 500 \
-  --loss-stop-value 1000 \
-  --poll 60
-```
-
-Stop with:
-
-```text
-Ctrl+C
-```
-
-The bot saves its state before exiting.
-
-## Aggressive $100 paper simulation example
-
-```bash
-./run_btc_bot.sh btc_eth_sol_coinbase_paper_bot_v10.py \
+./run_btc_bot.sh btc_eth_sol_coinbase_paper_bot_v14.py \
   --reset \
   --paper-cash 100 \
   --trade-size 50 \
   --loss-stop-value 50 \
+  --absolute-stop-pct 25 \
   --daily-profit-lock 25 \
   --idle-cash-apy 0.04 \
   --fee-model conservative \
@@ -94,264 +36,306 @@ The bot saves its state before exiting.
   --poll 60
 ```
 
-## Recommended realistic simulation
+You can now run:
 
 ```bash
-./run_btc_bot.sh btc_eth_sol_coinbase_paper_bot_v10.py \
+./run_btc_bot.sh btc_eth_sol_coinbase_paper_bot_v14.py --config configs/aggressive_100.json --reset
+```
+
+Command-line options override config-file values. For example:
+
+```bash
+./run_btc_bot.sh btc_eth_sol_coinbase_paper_bot_v14.py \
+  --config configs/aggressive_100.json \
   --reset \
-  --paper-cash 10000 \
-  --trade-size 500 \
-  --loss-stop-value 1000 \
-  --daily-profit-lock 300 \
-  --idle-cash-apy 0.04 \
-  --fee-model conservative \
-  --max-spread-pct 0.006 \
-  --poll 60
+  --trade-size 25
 ```
 
-## Analyze results
+That uses the aggressive config, but changes the trade size to $25.
 
-After the bot has generated logs:
 
-```bash
-./run_btc_bot.sh analyze_bot_performance_v10.py
+
+## Full config files: every supported bot flag is listed
+
+The config files in `configs/` now explicitly list every supported bot option, even when the value is just the default. This makes each JSON file an editable template.
+
+Included full config files:
+
+```text
+configs/all_flags_template.json
+configs/aggressive_100.json
+configs/balanced_100.json
+configs/conservative_100.json
 ```
 
-The analyzer reports:
-- total P/L
-- max drawdown
-- fees
-- closed-trade win/loss stats
-- estimated after-tax P/L
-- bot vs BTC buy-and-hold
-- bot vs ETH buy-and-hold
-- bot vs SOL buy-and-hold
-- bot vs equal-weight BTC/ETH/SOL
+Important safety note: `reset` and `once` are included in the JSON files so you can see that they exist, but they are set to `false` by default. I recommend passing `--reset` on the command line only when you intentionally want to wipe logs/state and start fresh.
 
-## Choose products manually
-
-Default v10 products:
+Use a config:
 
 ```bash
---products BTC-USD,ETH-USD,SOL-USD
+./run_btc_bot.sh btc_eth_sol_coinbase_paper_bot_v14.py --config configs/aggressive_100.json --reset
 ```
 
-BTC and ETH only:
+Override one config value from the terminal:
 
 ```bash
-./run_btc_bot.sh btc_eth_sol_coinbase_paper_bot_v10.py \
+./run_btc_bot.sh btc_eth_sol_coinbase_paper_bot_v14.py \
+  --config configs/aggressive_100.json \
   --reset \
-  --products BTC-USD,ETH-USD \
-  --paper-cash 1000 \
-  --trade-size 100 \
-  --loss-stop-value 200 \
-  --poll 60
+  --trade-size 25
 ```
 
-SOL only:
+Because command-line flags override the config file, this uses the aggressive config but changes only the trade size.
 
-```bash
-./run_btc_bot.sh btc_eth_sol_coinbase_paper_bot_v10.py \
-  --reset \
-  --products SOL-USD \
-  --paper-cash 1000 \
-  --trade-size 100 \
-  --loss-stop-value 200 \
-  --poll 60
-```
+## Included config files
 
-## v10 display cost breakdown
-
-When a position is open, v10 shows extra accounting lines:
+After setup, these will be in:
 
 ```text
-Entry fee paid:  $0.30
-Market move P/L: $0.00 before entry fee
-Open P/L:        $-0.30 after entry fee
-Est. exit fee:   $0.30 if sold at current bid
-Net liquidation: $-0.60 after entry+exit fees
-Break-even bid:  $85.60 | move needed 1.2081%
+~/btc-bot/configs/
 ```
 
-Meaning:
-
-- **Entry fee paid** is the simulated fee already paid to enter.
-- **Market move P/L** shows whether the coin price itself has moved in your favor before counting the entry fee.
-- **Open P/L** includes the entry fee but does not subtract the future exit fee yet.
-- **Estimated exit fee** is the simulated cost to sell right now at the current bid.
-- **Net liquidation** estimates what the trade would make/lose if closed immediately after both entry and exit fees.
-- **Break-even bid** is the estimated bid price needed to close the trade at roughly $0 net P/L after fees.
-
-For small accounts and conservative fees, it is normal for a trade to start negative immediately after buying.
-
-## Main features
-
-### 1. Buy-and-hold benchmark comparison
-
-The bot records benchmark prices at the start of a fresh simulation and compares the bot against:
-- BTC buy-and-hold
-- ETH buy-and-hold
-- SOL buy-and-hold
-- equal-weight tracked-product benchmark
-
-This matters because a bot is only useful if it adds value versus simply holding.
-
-### 2. Fee presets
-
-The bot supports:
-
-```bash
---fee-model conservative
---fee-model custom
---fee-model coinbase-advanced-maker
---fee-model coinbase-advanced-taker
-```
-
-Common settings:
-
-```bash
---fee-rate 0.006
---maker-fee-rate 0.004
---taker-fee-rate 0.006
-```
-
-`0.006` means 0.60%.
-
-The bot uses bid/ask execution, so conservative/taker-style fees are usually more realistic for short-term simulated trades.
-
-### 3. Spread no-trade filter
-
-```bash
---max-spread-pct 0.006
-```
-
-Stops opening new trades if the bid/ask spread is wider than the selected threshold.
-
-### 4. Drawdown risk ladder
-
-The bot automatically becomes more conservative as the simulated account draws down:
+Included examples:
 
 ```text
-3% drawdown: reduce trade size to 75%, add 4 score points
-5% drawdown: reduce trade size to 50%, add 8 score points
-7% drawdown: reduce trade size to 25%, add 15 score points
-10% drawdown: hard halt
+configs/aggressive_100.json
+configs/balanced_100.json
+configs/conservative_100.json
 ```
 
-Options:
+### Aggressive $100 config
 
 ```bash
---drawdown-step1-pct 0.03
---drawdown-step2-pct 0.05
---drawdown-step3-pct 0.07
---max-drawdown-pct 0.10
---disable-drawdown-ladder
+./run_btc_bot.sh btc_eth_sol_coinbase_paper_bot_v14.py --config configs/aggressive_100.json --reset
 ```
 
-### 5. Daily profit lock
+### Balanced $100 config
 
 ```bash
---daily-profit-lock 300
+./run_btc_bot.sh btc_eth_sol_coinbase_paper_bot_v14.py --config configs/balanced_100.json --reset
 ```
 
-If the bot reaches $300 profit for the UTC day, it stops opening new positions for the rest of that day. Existing positions may still be sold by the risk logic.
-
-### 6. Idle cash yield simulation
+### Conservative $100 config
 
 ```bash
---idle-cash-apy 0.04
+./run_btc_bot.sh btc_eth_sol_coinbase_paper_bot_v14.py --config configs/conservative_100.json --reset
 ```
 
-Simulates 4% annual yield on unused paper cash.
+## Important config-file note
 
-This is not Coinbase yield. It is just a generic paper assumption for cash that might otherwise sit in a money market, T-bills, HYSA, or similar low-risk bucket.
+The config files intentionally do **not** set `reset`.
 
-### 7. Tax/capital-gains CSV
+Use `--reset` on the command line only when you want a fresh clean simulation.
 
-The bot writes:
+Use no `--reset` when you want to continue from the saved JSON state file.
+
+## Install
+
+From the unzipped package folder:
+
+```bash
+bash setup_btc_bot.sh
+cd ~/btc-bot
+```
+
+If the popup tool is missing:
+
+```bash
+sudo apt install -y libnotify-bin
+```
+
+The bot will still run without `notify-send`; you just may not get desktop popups.
+
+## Help
+
+```bash
+./run_btc_bot.sh --help
+./run_btc_bot.sh btc_eth_sol_coinbase_paper_bot_v14.py --help
+```
+
+## Edit a config file
+
+Use nano:
+
+```bash
+nano ~/btc-bot/configs/aggressive_100.json
+```
+
+Example config values:
+
+```json
+{
+  "products": ["BTC-USD", "ETH-USD", "SOL-USD"],
+  "paper_cash": 100,
+  "trade_size": 50,
+  "loss_stop_value": 50,
+  "absolute_stop_pct": 25,
+  "daily_profit_lock": 25,
+  "idle_cash_apy": 0.04,
+  "fee_model": "conservative",
+  "max_spread_pct": 0.01,
+  "edge_threshold": 45,
+  "min_profit_minutes": 5,
+  "quick_profit_pct": 0.0015,
+  "poll": 60
+}
+```
+
+Use underscores in config keys, like:
 
 ```text
-logs/paper_tax_capital_gains_v10.csv
+paper_cash
+trade_size
+loss_stop_value
+absolute_stop_pct
 ```
 
-Columns include:
-- asset
-- product_id
-- lot_id
-- acquire_date_utc
-- dispose_date_utc
-- quantity
-- gross_sell_value_usd
-- cost_basis_usd
-- proceeds_usd
-- gain_loss_usd
-- buy_fee_usd
-- sell_fee_usd
-- total_trade_cost_usd
-- estimated_tax_usd
-- after_tax_gain_loss_usd
+Hyphenated names also work, but underscores are cleaner.
 
-This is a simulated planning aid only, not a tax filing document.
+## Absolute stop settings
 
-## Log files
+You can use a percentage, a dollar value, or both.
 
-```text
-~/btc-bot/logs/paper_state_v10.json
-~/btc-bot/logs/paper_trades_v10.csv
-~/btc-bot/logs/paper_equity_log_v10.csv
-~/btc-bot/logs/paper_daily_pnl_v10.csv
-~/btc-bot/logs/paper_tax_capital_gains_v10.csv
-~/btc-bot/logs/paper_research_log_v10.csv
+Percentage stop:
+
+```json
+"absolute_stop_pct": 25
 ```
 
-## What is the JSON file?
+With $100 starting paper cash, this stops the bot at about $75 equity.
 
-```text
-logs/paper_state_v10.json
+Dollar stop:
+
+```json
+"absolute_stop_value": 25
 ```
 
-This is the bot's saved simulation memory.
+With $100 starting paper cash, this also stops the bot at about $75 equity.
 
-It stores:
-- current paper cash
-- open BTC/ETH/SOL positions
-- entry prices
-- lot IDs
-- cost basis
-- realized P/L
-- cash yield totals
-- daily lock status
-- benchmark starting prices
-- kill-switch state
+Disable the percentage stop:
 
-If you stop and restart without `--reset`, the bot continues the same simulation.
+```json
+"absolute_stop_pct": 0
+```
 
-Use `--reset` to start over.
+If both percentage and dollar stops are enabled, whichever triggers first stops trading.
 
-## View files
+## Colors and alerts
+
+- Yellow = temporary halt, such as drawdown halt or normal loss stop.
+- Red = absolute final stop.
+- The bot beeps when either warning first triggers.
+- The bot tries to show a desktop popup when the absolute final stop triggers.
+- The score line remains red to make it easier to spot.
+
+Disable colors:
 
 ```bash
-column -s, -t logs/paper_trades_v10.csv | less -S
-column -s, -t logs/paper_daily_pnl_v10.csv | less -S
-column -s, -t logs/paper_tax_capital_gains_v10.csv | less -S
-column -s, -t logs/paper_equity_log_v10.csv | less -S
+--no-color
 ```
 
-## Security rules
-
-- Do not paste Coinbase API keys into ChatGPT.
-- This bot does not require API keys.
-- Do not give any future bot withdrawal permissions.
-- Do not treat paper results as proof a live system will be profitable.
-
-## Terminal color
-
-The live `Score:` line prints in red so it is easier to find while the bot is running.
-
-Disable color if needed:
+Disable beeps:
 
 ```bash
-./run_btc_bot.sh btc_eth_sol_coinbase_paper_bot_v10.py --no-color --once
+--no-beep
 ```
-# PaperCryptoTradingBot
-# PaperCryptoTradingBot
+
+Disable popup:
+
+```bash
+--no-popup
+```
+
+Set beep count in config:
+
+```json
+"beep_count": 5
+```
+
+Or on the command line:
+
+```bash
+--beep-count 5
+```
+
+## Run inside tmux
+
+```bash
+cd ~/btc-bot
+tmux new -s btcbot
+```
+
+Run the bot command, then detach:
+
+```text
+Ctrl+B
+D
+```
+
+Reconnect:
+
+```bash
+tmux attach -t btcbot
+```
+
+## Analyze
+
+```bash
+./run_btc_bot.sh analyze_bot_performance_v14.py
+```
+
+## v14 log files
+
+```text
+logs/paper_state_v14.json
+logs/paper_trades_v14.csv
+logs/paper_equity_log_v14.csv
+logs/paper_daily_pnl_v14.csv
+logs/paper_tax_capital_gains_v14.csv
+logs/paper_research_log_v14.csv
+```
+
+Most CSV files now include local-time columns such as:
+
+```text
+timestamp_local
+date_local
+acquire_date_local
+dispose_date_local
+```
+
+and also UTC columns such as:
+
+```text
+timestamp_utc
+date_utc
+acquire_date_utc
+dispose_date_utc
+```
+
+## What is the JSON state file?
+
+The state file is the bot's saved simulation memory:
+
+```text
+logs/paper_state_v14.json
+```
+
+It remembers current cash, open positions, lots, realized P/L, high-water mark, alerts, and halt status.
+
+Use `--reset` when you want to start a new clean test. Do not use `--reset` when you want to continue the same simulation.
+
+## Reminder
+
+This is not financial, tax, or legal advice. It is a paper-trading test lab.
+
+
+## v14 Trade Tally Display
+
+Version 14 adds a per-coin trade tally to the live terminal display. Each BTC/ETH/SOL block now includes:
+
+```text
+Tally:           BUY 2 | SELL 1 | TOTAL 3
+```
+
+The tally counts simulated paper trades for that product during the current saved run. It is stored in the state JSON, included in the equity and daily CSV snapshots, and summarized by the analyzer. Use `--reset` when you want to clear the saved run, logs, and tallies.
