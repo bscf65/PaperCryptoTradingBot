@@ -1,0 +1,17 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Bot logs and private simulation state
+logs/
+*.csv
+*.json
+
+# Keep config examples, but avoid accidentally uploading private configs
+!configs/
+!configs/*.json
+
+# OS/editor junk
+.DS_Store
+*.swp
